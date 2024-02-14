@@ -1,13 +1,17 @@
 import { Block, Matrix } from '@/types/light-client';
-import { createApi } from '../utils/api'
-import config from "../utils/config"
+import { createApi } from '../utils/api';
+import config from "../utils/config";
 import { generateRandomCells } from '@/utils/helper';
+interface Header {
+    number: string;
+    extension: string;
+}
 
 export async function runLC(onBlock: Function, registerUnsubscribe: Function): Promise<() => void> {
     const api: any = await createApi();
     const unsubscribe = await api.rpc.chain.subscribeFinalizedHeads(async (header: any) => {
         //Extracting the data out from header
-        const blockNumber = header.number.toString()
+        const blockNumber = header.number.toString();
         const extension = JSON.parse(header.extension)
         const commitment = extension.v2.commitment
         const kateCommitment = commitment.commitment.split('0x')[1]
@@ -21,7 +25,7 @@ export async function runLC(onBlock: Function, registerUnsubscribe: Function): P
 
         //Generating SAMPLE_SIZE random cell for sampling
         const totalCellCount = (r * config.EXTENSION_FACTOR) * c
-        let sampleCount = config.SAMPLE_SIZE
+        let sampleCount = config.SAMPLE_SIZE;
         if (sampleCount >= totalCellCount) {
             sampleCount = 5
         }
@@ -33,20 +37,20 @@ export async function runLC(onBlock: Function, registerUnsubscribe: Function): P
         const kate_commitment = Uint8Array.from(kateCommitment.match(/.{1,2}/g).map((byte: string) => parseInt(byte, 16)))
 
         //Creating commitement array based on rows and proof array based on cells
-        let commitments: Uint8Array[] = []
+        let commitments: Uint8Array[] = [];
         for (let i = 0; i < (r * config.EXTENSION_FACTOR); i++) {
-            commitments.push(kate_commitment.slice(i * config.COMMITMENT_SIZE, (i + 1) * config.COMMITMENT_SIZE))
+            commitments.push(kate_commitment.slice(i * config.COMMITMENT_SIZE, (i + 1) * config.COMMITMENT_SIZE));
         }
-        let proofs: Uint8Array[] = []
+        let proofs: Uint8Array[] = [];
         for (let i = 0; i < config.SAMPLE_SIZE; i++) {
-            proofs.push(kate_Proof.slice(i * config.KATE_PROOF_SIZE, (i + 1) * config.KATE_PROOF_SIZE))
+            proofs.push(kate_Proof.slice(i * config.KATE_PROOF_SIZE, (i + 1) * config.KATE_PROOF_SIZE));
         }
 
 
         //Create required info for process block
-        const block: Block = { number: blockNumber, hash: blockHash, totalCellCount: totalCellCount, confidence: 0, sampleCount: sampleCount, timestamp }
-        const matrix: Matrix = { maxRow: r, maxCol: c, verifiedCells: [], totalCellCount }
-        onBlock(block, matrix, randomCells, proofs, commitments)
+        const block: Block = { number: blockNumber, hash: blockHash, totalCellCount: totalCellCount, confidence: 0, sampleCount: sampleCount, timestamp };
+        const matrix: Matrix = { maxRow: r, maxCol: c, verifiedCells: [], totalCellCount };
+        onBlock(block, matrix, randomCells, proofs, commitments);
     });
 
     return registerUnsubscribe(() => unsubscribe);
